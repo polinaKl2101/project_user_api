@@ -20,7 +20,7 @@ class LoginAPIView(generics.CreateAPIView):
     def post(self, request, *args, **kwargs) -> Response:
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        user = serializer.save()
+        serializer.save()
 
         if serializer.is_valid():
             user = User.objects.get(pk=serializer.data['id'])
@@ -50,15 +50,15 @@ class VerificationTokenAPIView(views.APIView):
 
     def post(self, request, *args, **kwargs) -> Response:
         serializer = self.serializer_class(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        user = serializer.validated_data['user']
-        auth_token = create_auth_token(user)
-        if auth_token:
-            token_serializer = TokenSerializer(data={"token": auth_token.key, }, partial=True)
-            if token_serializer.is_valid():
-                return Response(token_serializer.data, status=status.HTTP_200_OK)
-        else:
-            return Response({'message': 'Ошибка'}, status=status.HTTP_400_BAD_REQUEST)
+        if serializer.is_valid(raise_exception=True):
+            user = serializer.validated_data['user']
+            auth_token = create_auth_token(user)
+            if auth_token:
+                token_serializer = TokenSerializer(data={"token": auth_token.key, }, partial=True)
+                if token_serializer.is_valid():
+                    return Response(token_serializer.data, status=status.HTTP_200_OK)
+            else:
+                return Response({'message': 'Ошибка'}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class UserAPIView(generics.RetrieveUpdateDestroyAPIView):

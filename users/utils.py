@@ -17,7 +17,7 @@ def generate_auth_code():
     return ''.join([random.choice(list('123456789')) for x in range(5)])
 
 
-def send_auth_code(user, auth_code):
+def send_auth_code(user, auth_code, **kwargs):
     """
     Метод, имитирующий отправку кода авторизации
     """

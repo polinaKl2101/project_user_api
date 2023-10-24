@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from phonenumber_field.serializerfields import PhoneNumberField
 from rest_framework.exceptions import ValidationError
+from typing import Dict, Any
 
 from users.models import User, AuthenticationCode
 from users.service import check_auth_code_lifetime
@@ -38,7 +39,7 @@ class LoginSerializer(serializers.ModelSerializer):
 class UserViewSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['phone_number']
+        fields = ['phone_number', ]
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -59,7 +60,7 @@ class UserSerializer(serializers.ModelSerializer):
         self.is_valid(raise_exception=True) # проверяем корректность данных
         return super().update(request, *args, **kwargs) # обновляем объект в БД
 
-    def is_valid(self, *, raise_exception=True):
+    def is_valid(self, *, raise_exception=False):
         """Эта функция проверяет, был ли указан код реферала при создании объекта.
         Если код был указан и объект еще не имеет реферала, то функция пытается найти пользователя с таким кодом
         и присвоить его как реферала объекту. Если пользователь не найден или происходит ошибка при обработке кода,
@@ -96,8 +97,7 @@ class VerifyAuthCodeSerializer(serializers.Serializer):
     phone_number = PhoneNumberField(required=False, max_length=11)
     code = AuthenticationCodeSerializer(min_length=5, max_length=5, validators=[check_auth_code_lifetime])
 
-
-    def validate(self, attrs):
+    def validate(self, attrs: Dict[str, Any]) -> Dict[str, Any]:
         """
         Эта функция используется для проверки данных, переданных в сериализатор. В данном случае,
         функция проверяет наличие пользователя с заданным номером телефона и проверочным кодом,
@@ -105,8 +105,11 @@ class VerifyAuthCodeSerializer(serializers.Serializer):
         в виде словаря attrs. Если же данные не проходят проверку, то функция генерирует исключение
         serializers.ValidationError с соответствующим сообщением об ошибке.
         """
-        code = attrs['code']
-        phone_number = attrs['phone_number']
+        code = attrs.get('code', None)
+        phone_number = attrs.get('phone_number', None)
+
+        if code is None or phone_number is None:
+            raise serializers.ValidationError('Введите данные для аутентификации пользователя')
         try:
             user = User.objects.get(phone_number=phone_number)
             AuthenticationCode.objects.filter(user=user, code=code, is_active=True).first()
